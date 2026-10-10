@@ -1,112 +1,57 @@
 
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
-import {
-  MapContainer,
-  TileLayer,
-  CircleMarker,
-  Popup,
-} from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-
-const INITIAL_UNITS = [
-  { id: "1", callsign: "LPSO-101", agency: "Sheriff", name: "Unit 101", status: "Available", area: "Livingston" },
-  { id: "2", callsign: "LPSO-102", agency: "Sheriff", name: "Unit 102", status: "Available", area: "Walker" },
-  { id: "3", callsign: "WPD-201", agency: "Walker PD", name: "Unit 201", status: "Available", area: "Walker" },
-  { id: "4", callsign: "DSPD-301", agency: "Denham Springs PD", name: "Unit 301", status: "Available", area: "Denham Springs" },
-  { id: "5", callsign: "LPFD-401", agency: "Fire", name: "Unit 401", status: "Available", area: "Livingston" },
-  { id: "6", callsign: "EMS-501", agency: "EMS", name: "Unit 501", status: "Available", area: "Parishwide" },
-];
-
-const INITIAL_CALLS = [
-  {
-    id: "26-0001",
-    type: "Traffic Collision",
-    priority: "High",
-    location: "LA-447, Livingston",
-    area: "Livingston",
-    caller: "Simulated caller",
-    details: "Two-vehicle collision reported. Injuries unknown.",
-    status: "Pending",
-    units: [],
-    time: new Date().toISOString(),
-  },
-  {
-    id: "26-0002",
-    type: "Suspicious Activity",
-    priority: "Routine",
-    location: "Walker South Road, Walker",
-    area: "Walker",
-    caller: "Simulated caller",
-    details: "Caller reports suspicious activity near a business.",
-    status: "Pending",
-    units: [],
-    time: new Date(Date.now() - 240000).toISOString(),
-  },
-  {
-    id: "26-0003",
-    type: "Medical Assistance",
-    priority: "High",
-    location: "LA-16, Denham Springs",
-    area: "Denham Springs",
-    caller: "Simulated caller",
-    details: "Medical assistance requested. Patient condition unknown.",
-    status: "Pending",
-    units: [],
-    time: new Date(Date.now() - 480000).toISOString(),
-  },
-];
-
-const CALL_TYPES = [
-  "Traffic Collision",
-  "Medical Assistance",
-  "Fire / Smoke",
-  "Suspicious Activity",
-  "Disturbance",
-  "Theft",
-  "Welfare Check",
-  "Alarm",
-  "Road Hazard",
-  "Other",
-];
 
 const AREAS = [
   "Livingston",
   "Walker",
   "Denham Springs",
   "Watson",
-  "Albany",
   "Springfield",
-  "Killian",
-  "Port Vincent",
+  "Albany",
   "French Settlement",
+  "Port Vincent",
+  "Killian",
   "Holden",
-  "Parishwide",
 ];
 
-const STATUSES = [
-  "Available",
-  "En Route",
-  "On Scene",
-  "Busy",
-  "Out of Service",
-];
-
-const PRIORITIES = ["Critical", "High", "Routine", "Low"];
-
-const AREA_COORDINATES = {
-  Livingston: [30.5027, -90.7473],
-  Walker: [30.4874, -90.8615],
-  "Denham Springs": [30.4874, -90.959],
-  Watson: [30.5752, -90.953],
-  Albany: [30.5044, -90.5843],
-  Springfield: [30.428, -90.55],
-  Killian: [30.358, -90.588],
-  "Port Vincent": [30.337, -90.85],
-  "French Settlement": [30.298, -90.79],
-  Holden: [30.505, -90.67],
-  Parishwide: [30.48, -90.78],
+const AGENCIES = {
+  POLICE: { label: "Law Enforcement", short: "LE", prefix: "LPSO", color: "#60a5fa" },
+  FIRE: { label: "Fire Department", short: "FIRE", prefix: "FIRE", color: "#fb7185" },
+  EMS: { label: "EMS", short: "EMS", prefix: "EMS", color: "#34d399" },
 };
+
+const INCIDENTS = [
+  { type: "Traffic Stop", category: "POLICE", priority: "P4", details: "Vehicle stopped for a traffic violation." },
+  { type: "Suspicious Person", category: "POLICE", priority: "P3", details: "Caller reports suspicious activity in the area." },
+  { type: "Disturbance", category: "POLICE", priority: "P2", details: "Caller reports a disturbance. Further details pending." },
+  { type: "Motor Vehicle Crash", category: "POLICE", priority: "P2", details: "Reported vehicle collision. Check for injuries." },
+  { type: "Welfare Check", category: "POLICE", priority: "P3", details: "Request to check on a person's welfare." },
+  { type: "Structure Fire", category: "FIRE", priority: "P1", details: "Reported structure fire. Confirm conditions on arrival." },
+  { type: "Smoke Investigation", category: "FIRE", priority: "P3", details: "Caller reports smoke in the area." },
+  { type: "Vehicle Fire", category: "FIRE", priority: "P2", details: "Reported vehicle fire. Approach with caution." },
+  { type: "Medical Emergency", category: "EMS", priority: "P2", details: "Medical response requested. Patient details pending." },
+  { type: "Breathing Difficulty", category: "EMS", priority: "P1", details: "Caller reports a person experiencing breathing difficulty." },
+  { type: "Fall Injury", category: "EMS", priority: "P3", details: "Medical assessment requested following a reported fall." },
+  { type: "Vehicle Crash with Injuries", category: "EMS", priority: "P1", details: "Reported crash with possible injuries." },
+];
+
+const INITIAL_UNITS = [
+  { id: "LPSO-101", agency: "POLICE", area: "Livingston", status: "Available", callId: null },
+  { id: "LPSO-102", agency: "POLICE", area: "Walker", status: "Available", callId: null },
+  { id: "LPSO-103", agency: "POLICE", area: "Denham Springs", status: "Available", callId: null },
+  { id: "LPSO-104", agency: "POLICE", area: "Watson", status: "Available", callId: null },
+  { id: "LPSO-105", agency: "POLICE", area: "Albany", status: "Available", callId: null },
+  { id: "FIRE-1", agency: "FIRE", area: "Livingston", status: "Available", callId: null },
+  { id: "FIRE-2", agency: "FIRE", area: "Denham Springs", status: "Available", callId: null },
+  { id: "FIRE-3", agency: "FIRE", area: "Walker", status: "Available", callId: null },
+  { id: "EMS-1", agency: "EMS", area: "Livingston", status: "Available", callId: null },
+  { id: "EMS-2", agency: "EMS", area: "Denham Springs", status: "Available", callId: null },
+  { id: "EMS-3", agency: "EMS", area: "Walker", status: "Available", callId: null },
+];
+
+const CALL_STATUSES = ["Pending", "Dispatched", "En Route", "On Scene", "Cleared"];
+const UNIT_STATUSES = ["Available", "En Route", "On Scene", "Transporting", "Out of Service"];
 
 function readSaved(key, fallback) {
   try {
@@ -117,1019 +62,592 @@ function readSaved(key, fallback) {
   }
 }
 
-function formatTime(value) {
-  return new Date(value).toLocaleTimeString([], {
+function clock() {
+  return new Date().toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
   });
 }
 
-function Badge({ children, type = "" }) {
-  return <span className={`badge ${type}`}>{children}</span>;
+function makeId() {
+  return `LP-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 90 + 10)}`;
 }
 
-function App() {
-  const [now, setNow] = useState(new Date());
+function createCall() {
+  const incident = INCIDENTS[Math.floor(Math.random() * INCIDENTS.length)];
+  const area = AREAS[Math.floor(Math.random() * AREAS.length)];
+  const road = [
+    "LA Highway 16",
+    "US Highway 190",
+    "LA Highway 42",
+    "LA Highway 447",
+    "LA Highway 22",
+    "LA Highway 1034",
+    "LA Highway 1019",
+    "I-12",
+    "Main Street",
+    "Church Street",
+    "Florida Boulevard",
+    "Range Avenue",
+  ][Math.floor(Math.random() * 12)];
 
+  return {
+    id: makeId(),
+    type: incident.type,
+    agency: incident.category,
+    priority: incident.priority,
+    area,
+    location: `${road}, ${area}, LA`,
+    details: incident.details,
+    status: "Pending",
+    units: [],
+    created: clock(),
+    createdAt: Date.now(),
+    notes: [],
+  };
+}
+
+function initialCalls() {
+  return [
+    {
+      id: "LP-240101",
+      type: "Motor Vehicle Crash",
+      agency: "POLICE",
+      priority: "P2",
+      area: "Denham Springs",
+      location: "Florida Boulevard, Denham Springs, LA",
+      details: "Two-vehicle collision reported. Injuries not confirmed.",
+      status: "Dispatched",
+      units: ["LPSO-103", "EMS-2"],
+      created: clock(),
+      createdAt: Date.now() - 180000,
+      notes: [],
+    },
+    {
+      id: "LP-240102",
+      type: "Medical Emergency",
+      agency: "EMS",
+      priority: "P2",
+      area: "Walker",
+      location: "US Highway 190, Walker, LA",
+      details: "Medical assistance requested. Patient details pending.",
+      status: "En Route",
+      units: ["EMS-3"],
+      created: clock(),
+      createdAt: Date.now() - 90000,
+      notes: [],
+    },
+  ];
+}
+
+export default function App() {
   const [calls, setCalls] = useState(() =>
-    readSaved("lpds-calls", INITIAL_CALLS)
+    readSaved("lpds-v2-calls", initialCalls())
   );
-
   const [units, setUnits] = useState(() =>
-    readSaved("lpds-units", INITIAL_UNITS)
+    readSaved("lpds-v2-units", INITIAL_UNITS)
   );
-
-  const [logs, setLogs] = useState(() =>
-    readSaved("lpds-logs", [
-      {
-        id: 1,
-        time: new Date().toISOString(),
-        message: "Dispatch console initialized.",
-      },
-      {
-        id: 2,
-        time: new Date().toISOString(),
-        message: "Simulation mode active. Calls are fictional.",
-      },
+  const [radio, setRadio] = useState(() =>
+    readSaved("lpds-v2-radio", [
+      { id: 1, time: clock(), channel: "DISPATCH", unit: "SYSTEM", message: "Dispatch console initialized." },
+      { id: 2, time: clock(), channel: "DISPATCH", unit: "SYSTEM", message: "Simulation mode active. No real emergency services connected." },
     ])
   );
-
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [showNewCall, setShowNewCall] = useState(false);
-  const [assignUnit, setAssignUnit] = useState("");
-
-  const [newCall, setNewCall] = useState({
-    type: "Traffic Collision",
-    priority: "Routine",
-    area: "Walker",
-    location: "",
-    details: "",
-  });
+  const [filter, setFilter] = useState("Active");
+  const [agencyFilter, setAgencyFilter] = useState("ALL");
+  const [note, setNote] = useState("");
+  const [radioMessage, setRadioMessage] = useState("");
+  const [radioChannel, setRadioChannel] = useState("DISPATCH");
+  const [autoGenerate, setAutoGenerate] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("lpds-calls", JSON.stringify(calls));
+    localStorage.setItem("lpds-v2-calls", JSON.stringify(calls));
   }, [calls]);
 
   useEffect(() => {
-    localStorage.setItem("lpds-units", JSON.stringify(units));
+    localStorage.setItem("lpds-v2-units", JSON.stringify(units));
   }, [units]);
 
   useEffect(() => {
-    localStorage.setItem("lpds-logs", JSON.stringify(logs.slice(0, 100)));
-  }, [logs]);
+    localStorage.setItem("lpds-v2-radio", JSON.stringify(radio.slice(0, 250)));
+  }, [radio]);
 
-  function log(message) {
-    setLogs((previous) =>
-      [
-        {
-          id: Date.now() + Math.random(),
-          time: new Date().toISOString(),
-          message,
-        },
-        ...previous,
-      ].slice(0, 100)
-    );
-  }
+  useEffect(() => {
+    if (!autoGenerate) return undefined;
+    const timer = window.setInterval(() => {
+      addCall(true);
+    }, 45000);
+    return () => window.clearInterval(timer);
+  }, [autoGenerate]);
 
-  const selectedCall =
-    calls.find((call) => call.id === selectedId) || null;
+  const selectedCall = calls.find((call) => call.id === selectedId) || null;
 
   const visibleCalls = useMemo(() => {
-    return [...calls]
+    return calls
       .filter((call) => {
-        const text =
-          `${call.id} ${call.type} ${call.location} ${call.area} ${call.details}`.toLowerCase();
-
-        const matchesSearch = text.includes(search.toLowerCase());
-
         const matchesFilter =
           filter === "All" ||
-          (filter === "Open" && call.status !== "Cleared") ||
+          (filter === "Active" && call.status !== "Cleared") ||
           (filter === "Pending" && call.status === "Pending") ||
-          (filter === "Active" &&
-            ["Accepted", "Dispatched", "In Progress"].includes(
-              call.status
-            )) ||
           (filter === "Cleared" && call.status === "Cleared");
 
-        return matchesSearch && matchesFilter;
+        const matchesAgency =
+          agencyFilter === "ALL" || call.agency === agencyFilter;
+
+        const text = `${call.id} ${call.type} ${call.area} ${call.location} ${call.details}`.toLowerCase();
+        return matchesFilter && matchesAgency && text.includes(search.toLowerCase());
       })
       .sort((a, b) => {
-        const rank = {
-          Critical: 0,
-          High: 1,
-          Routine: 2,
-          Low: 3,
-        };
-
+        const priorityOrder = { P1: 1, P2: 2, P3: 3, P4: 4 };
         if (a.status === "Cleared" && b.status !== "Cleared") return 1;
         if (b.status === "Cleared" && a.status !== "Cleared") return -1;
-
-        return (rank[a.priority] ?? 4) - (rank[b.priority] ?? 4);
+        return priorityOrder[a.priority] - priorityOrder[b.priority] || b.createdAt - a.createdAt;
       });
-  }, [calls, search, filter]);
+  }, [calls, filter, agencyFilter, search]);
 
-  const openCalls = calls.filter(
-    (call) => call.status !== "Cleared"
-  ).length;
+  const activeCount = calls.filter((call) => call.status !== "Cleared").length;
+  const pendingCount = calls.filter((call) => call.status === "Pending").length;
+  const availableCount = units.filter((unit) => unit.status === "Available").length;
+  const criticalCount = calls.filter((call) => call.priority === "P1" && call.status !== "Cleared").length;
 
-  const availableUnits = units.filter(
-    (unit) => unit.status === "Available"
-  ).length;
+  function addRadio(message, unit = "DISPATCH", channel = "DISPATCH") {
+    setRadio((current) => [
+      { id: `${Date.now()}-${Math.random()}`, time: clock(), channel, unit, message },
+      ...current,
+    ].slice(0, 250));
+  }
 
-  const activeUnits = units.filter((unit) =>
-    ["En Route", "On Scene", "Busy"].includes(unit.status)
-  ).length;
+  function addCall(silent = false) {
+    const call = createCall();
+    setCalls((current) => [call, ...current]);
+    setSelectedId(call.id);
+    addRadio(`New ${call.priority} call: ${call.type}, ${call.area}. Call ID ${call.id}.`);
+    if (!silent) setNotice(`Created ${call.id}`);
+  }
 
-  function updateCall(id, changes) {
-    setCalls((previous) =>
-      previous.map((call) =>
-        call.id === id ? { ...call, ...changes } : call
-      )
+  function updateCall(callId, changes) {
+    setCalls((current) =>
+      current.map((call) => call.id === callId ? { ...call, ...changes } : call)
     );
   }
 
-  function acceptCall(call) {
-    if (call.status !== "Pending") return;
-
-    updateCall(call.id, { status: "Accepted" });
-    log(`${call.id} accepted — ${call.type} at ${call.location}.`);
-  }
-
-  function dispatchCall() {
+  function dispatchSelected() {
     if (!selectedCall) return;
+    if (selectedCall.status === "Cleared") return;
 
-    if (selectedCall.status === "Cleared") {
-      log(`Dispatch prevented: ${selectedCall.id} is already cleared.`);
+    const assigned = selectedCall.units || [];
+    const eligible = units.filter(
+      (unit) =>
+        unit.status === "Available" &&
+        unit.agency === selectedCall.agency &&
+        !assigned.includes(unit.id)
+    );
+
+    if (eligible.length === 0) {
+      setNotice(`No available ${AGENCIES[selectedCall.agency].label} units.`);
       return;
     }
 
-    if (!assignUnit) {
-      log(`Dispatch attempt for ${selectedCall.id} needs a unit assignment.`);
-      return;
-    }
+    const unit = eligible.find((item) => item.area === selectedCall.area) || eligible[0];
+    const newUnits = [...assigned, unit.id];
 
-    const unit = units.find((item) => item.id === assignUnit);
-
-    if (!unit) return;
-
-    const alreadyAssigned = selectedCall.units.includes(unit.id);
-
-    if (alreadyAssigned) {
-      log(`${unit.callsign} is already assigned to ${selectedCall.id}.`);
-      setAssignUnit("");
-      return;
-    }
-
-    if (unit.status !== "Available") {
-      log(`${unit.callsign} is not available for a new assignment.`);
-      return;
-    }
-
-    const updatedIds = [...selectedCall.units, unit.id];
-
-    updateCall(selectedCall.id, {
-      status: "Dispatched",
-      units: updatedIds,
-    });
-
-    setUnits((previous) =>
-      previous.map((item) =>
+    setUnits((current) =>
+      current.map((item) =>
         item.id === unit.id
-          ? {
-              ...item,
-              status: "En Route",
-              currentCall: selectedCall.id,
-              area: selectedCall.area,
-            }
+          ? { ...item, status: "En Route", callId: selectedCall.id }
           : item
       )
     );
 
-    log(
-      `${unit.callsign} dispatched to ${selectedCall.id}, ${selectedCall.location}.`
+    updateCall(selectedCall.id, {
+      units: newUnits,
+      status: "En Route",
+    });
+
+    addRadio(`${unit.id}, respond to ${selectedCall.type} at ${selectedCall.location}.`, unit.id);
+    setNotice(`${unit.id} assigned to ${selectedCall.id}`);
+  }
+
+  function assignUnit(unitId) {
+    if (!selectedCall || selectedCall.status === "Cleared") return;
+
+    const unit = units.find((item) => item.id === unitId);
+    if (!unit || unit.status !== "Available") {
+      setNotice("Choose an available unit.");
+      return;
+    }
+
+    setUnits((current) =>
+      current.map((item) =>
+        item.id === unitId
+          ? { ...item, status: "En Route", callId: selectedCall.id }
+          : item
+      )
     );
 
-    setAssignUnit("");
+    updateCall(selectedCall.id, {
+      units: [...new Set([...(selectedCall.units || []), unitId])],
+      status: "En Route",
+    });
+
+    addRadio(`${unitId} assigned to ${selectedCall.id}, ${selectedCall.location}.`, unitId);
+    setNotice(`${unitId} assigned`);
+  }
+
+  function changeCallStatus(status) {
+    if (!selectedCall) return;
+
+    if (status === "Cleared") {
+      setUnits((current) =>
+        current.map((unit) =>
+          (selectedCall.units || []).includes(unit.id)
+            ? { ...unit, status: "Available", callId: null }
+            : unit
+        )
+      );
+      updateCall(selectedCall.id, { status, clearedAt: clock() });
+      addRadio(`Incident ${selectedCall.id} cleared. Assigned units available.`);
+    } else {
+      updateCall(selectedCall.id, { status });
+      const nextUnitStatus =
+        status === "On Scene" ? "On Scene" :
+        status === "En Route" ? "En Route" : null;
+
+      if (nextUnitStatus) {
+        setUnits((current) =>
+          current.map((unit) =>
+            (selectedCall.units || []).includes(unit.id)
+              ? { ...unit, status: nextUnitStatus }
+              : unit
+          )
+        );
+      }
+
+      addRadio(`Incident ${selectedCall.id} status changed to ${status}.`);
+    }
+
+    setNotice(`${selectedCall.id}: ${status}`);
   }
 
   function changeUnitStatus(unitId, status) {
     const unit = units.find((item) => item.id === unitId);
+    if (!unit) return;
 
-    setUnits((previous) =>
-      previous.map((item) =>
+    setUnits((current) =>
+      current.map((item) =>
         item.id === unitId
-          ? {
-              ...item,
-              status,
-              currentCall:
-                status === "Available" || status === "Out of Service"
-                  ? null
-                  : item.currentCall,
-            }
+          ? { ...item, status, callId: status === "Available" || status === "Out of Service" ? null : item.callId }
           : item
       )
     );
 
-    log(`${unit?.callsign || "Unit"} status changed to ${status}.`);
+    addRadio(`${unitId} status: ${status}.`, unitId);
+
+    if (status === "Available" || status === "Out of Service") {
+      setCalls((current) =>
+        current.map((call) =>
+          call.id === unit.callId
+            ? { ...call, units: call.units.filter((id) => id !== unitId) }
+            : call
+        )
+      );
+    }
   }
 
-  function clearCall(call) {
-    if (call.status === "Cleared") return;
-
-    updateCall(call.id, { status: "Cleared" });
-
-    setUnits((previous) =>
-      previous.map((unit) =>
-        call.units.includes(unit.id)
-          ? {
-              ...unit,
-              status: "Available",
-              currentCall: null,
-            }
-          : unit
-      )
-    );
-
-    log(`${call.id} cleared. Assigned units returned to Available.`);
-  }
-
-  function createCall(event) {
-    event.preventDefault();
-
-    const id = `26-${String(Date.now()).slice(-6)}`;
-
-    const call = {
-      ...newCall,
-      id,
-      location: newCall.location.trim(),
-      details:
-        newCall.details.trim() || "No additional details provided.",
-      caller: "Simulated caller",
-      status: "Pending",
-      units: [],
-      time: new Date().toISOString(),
-    };
-
-    setCalls((previous) => [call, ...previous]);
-    setSelectedId(id);
-    setFilter("All");
-    setSearch("");
-    setShowNewCall(false);
-
-    setNewCall({
-      type: "Traffic Collision",
-      priority: "Routine",
-      area: "Walker",
-      location: "",
-      details: "",
+  function addIncidentNote() {
+    if (!selectedCall || !note.trim()) return;
+    const entry = { time: clock(), text: note.trim() };
+    updateCall(selectedCall.id, {
+      notes: [...(selectedCall.notes || []), entry],
     });
-
-    log(
-      `New ${call.priority.toLowerCase()} priority call created: ${id} — ${call.type}.`
-    );
+    addRadio(`Note added to ${selectedCall.id}: ${note.trim()}`);
+    setNote("");
   }
 
-  function addDemoCall() {
-    const samples = [
-      {
-        type: "Road Hazard",
-        priority: "Routine",
-        area: "Watson",
-        location: "LA-1019, Watson",
-        details: "Simulated report of debris in the roadway.",
-      },
-      {
-        type: "Welfare Check",
-        priority: "Low",
-        area: "Albany",
-        location: "US-190, Albany",
-        details: "Simulated request for a welfare check.",
-      },
-      {
-        type: "Fire / Smoke",
-        priority: "High",
-        area: "Denham Springs",
-        location: "Range Avenue, Denham Springs",
-        details: "Simulated smoke report; details unconfirmed.",
-      },
-      {
-        type: "Disturbance",
-        priority: "Routine",
-        area: "Livingston",
-        location: "LA-63, Livingston",
-        details: "Simulated disturbance call; situation unknown.",
-      },
-    ];
-
-    const sample = samples[Math.floor(Math.random() * samples.length)];
-    const id = `26-${String(Date.now()).slice(-6)}`;
-
-    setCalls((previous) => [
-      {
-        ...sample,
-        id,
-        caller: "Simulated caller",
-        status: "Pending",
-        units: [],
-        time: new Date().toISOString(),
-      },
-      ...previous,
-    ]);
-
-    setSelectedId(id);
-    setFilter("All");
-    setSearch("");
-    log(`Simulation generated a new ${sample.type} call: ${id}.`);
+  function sendRadioMessage() {
+    if (!radioMessage.trim()) return;
+    addRadio(radioMessage.trim(), "DISPATCH", radioChannel);
+    setRadioMessage("");
   }
 
   function resetSimulation() {
-    const confirmed = window.confirm(
-      "Reset all simulated calls, unit statuses, and activity logs? This cannot be undone."
-    );
-
-    if (!confirmed) return;
-
-    setCalls(INITIAL_CALLS);
+    if (!window.confirm("Reset all saved simulation calls, units, and radio traffic?")) return;
+    setCalls(initialCalls());
     setUnits(INITIAL_UNITS);
-    setLogs([
-      {
-        id: Date.now(),
-        time: new Date().toISOString(),
-        message: "Simulation data reset by dispatcher.",
-      },
+    setRadio([
+      { id: Date.now(), time: clock(), channel: "DISPATCH", unit: "SYSTEM", message: "Simulation reset by operator." },
     ]);
-
     setSelectedId(null);
-    setAssignUnit("");
-    setSearch("");
-    setFilter("All");
-    setShowNewCall(false);
-
-    localStorage.removeItem("lpds-calls");
-    localStorage.removeItem("lpds-units");
-    localStorage.removeItem("lpds-logs");
+    setNotice("Simulation reset");
   }
 
   return (
-    <div className="app-shell">
+    <main className="cad-app">
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark">
-            <span>LP</span>
-          </div>
-
+          <div className="brand-mark">LP</div>
           <div>
-            <div className="brand-title">LIVINGSTON PARISH</div>
-            <div className="brand-subtitle">
-              DISPATCH SIMULATOR{" "}
-              <span className="demo-pill">SIMULATION</span>
-            </div>
+            <h1>LIVINGSTON PARISH <span>DISPATCH</span></h1>
+            <p>SIMULATION & TRAINING CONSOLE</p>
           </div>
         </div>
-
         <div className="topbar-right">
-          <div className="system-state">
-            <span className="live-dot" />
-            SYSTEM ONLINE
-          </div>
-
-          <div className="clock">
-            <strong>{now.toLocaleTimeString([], { hour12: false })}</strong>
-            <span>
-              {now.toLocaleDateString([], {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
-          </div>
+          <span className="sim-pill"><span /> SIMULATION ONLY</span>
+          <div className="clock">{clock()}</div>
         </div>
       </header>
 
-      <div className="disclaimer">
-        <span>ⓘ</span>
-        TRAINING SIMULATION ONLY — All incidents and radio activity are
-        fictional. Not connected to 911 or any public safety agency.
+      <div className="warning-banner">
+        <strong>TRAINING ENVIRONMENT</strong>
+        <span>Fictional calls and units. Not connected to 911 or any real emergency agency.</span>
       </div>
 
-      <main className="workspace">
-        <section className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-label">OPEN CALLS</span>
-            <strong>{String(openCalls).padStart(2, "0")}</strong>
-            <span className="stat-note">Awaiting / active</span>
-          </div>
+      <section className="stat-grid">
+        <Stat label="ACTIVE INCIDENTS" value={activeCount} detail="Open calls" />
+        <Stat label="AWAITING DISPATCH" value={pendingCount} detail="Pending calls" accent="amber" />
+        <Stat label="AVAILABLE UNITS" value={availableCount} detail={`of ${units.length} tracked units`} accent="green" />
+        <Stat label="PRIORITY 1" value={criticalCount} detail="Critical active calls" accent="red" />
+      </section>
 
-          <div className="stat-card">
-            <span className="stat-label">AVAILABLE UNITS</span>
-            <strong>{String(availableUnits).padStart(2, "0")}</strong>
-            <span className="stat-note">Ready for assignment</span>
-          </div>
+      {notice && (
+        <button className="notice" onClick={() => setNotice("")} title="Dismiss message">
+          {notice} <span>×</span>
+        </button>
+      )}
 
-          <div className="stat-card">
-            <span className="stat-label">ACTIVE UNITS</span>
-            <strong>{String(activeUnits).padStart(2, "0")}</strong>
-            <span className="stat-note">En route / on scene / busy</span>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-label">TOTAL CALLS</span>
-            <strong>{String(calls.length).padStart(2, "0")}</strong>
-            <span className="stat-note">Saved in this browser</span>
-          </div>
-        </section>
-
-        <div className="main-grid">
-          <section className="panel calls-panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">CALL MANAGEMENT</span>
-                <h2>Incident Queue</h2>
-              </div>
-
-              <button
-                className="primary-button"
-                onClick={() => setShowNewCall(true)}
-              >
-                ＋ New Call
-              </button>
-            </div>
-
-            <div className="queue-controls">
-              <input
-                aria-label="Search calls"
-                placeholder="Search calls, locations..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-
-              <select
-                aria-label="Filter calls"
-                value={filter}
-                onChange={(event) => setFilter(event.target.value)}
-              >
-                <option>All</option>
-                <option>Open</option>
-                <option>Pending</option>
-                <option>Active</option>
-                <option>Cleared</option>
-              </select>
-            </div>
-
-            <div className="call-list">
-              {visibleCalls.length === 0 && (
-                <div className="empty-state">
-                  No calls match your search.
-                </div>
-              )}
-
-              {visibleCalls.map((call) => (
-                <button
-                  className={`call-row ${
-                    selectedId === call.id ? "selected" : ""
-                  } ${call.status === "Cleared" ? "cleared" : ""}`}
-                  key={call.id}
-                  onClick={() => {
-                    setSelectedId(call.id);
-                    setAssignUnit("");
-                  }}
-                >
-                  <div
-                    className={`priority-bar ${call.priority.toLowerCase()}`}
-                  />
-
-                  <div className="call-main">
-                    <div className="call-row-top">
-                      <strong>{call.type}</strong>
-                      <Badge type={call.priority.toLowerCase()}>
-                        {call.priority}
-                      </Badge>
-                    </div>
-
-                    <div className="call-location">
-                      <span>⌖</span> {call.location}
-                    </div>
-
-                    <div className="call-meta">
-                      <span>{call.id}</span>
-                      <span>{formatTime(call.time)}</span>
-                    </div>
-                  </div>
-
-                  <div className="call-row-end">
-                    <Badge
-                      type={call.status.toLowerCase().replaceAll(" ", "-")}
-                    >
-                      {call.status}
-                    </Badge>
-                    <span className="chevron">›</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="panel-footer">
-              <span>{visibleCalls.length} displayed</span>
-              <button className="text-button" onClick={addDemoCall}>
-                ＋ Generate demo call
-              </button>
-            </div>
-          </section>
-
-          <section className="panel detail-panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">INCIDENT WORKSPACE</span>
-                <h2>Call Details</h2>
-              </div>
-
-              {selectedCall && (
-                <Badge
-                  type={selectedCall.status.toLowerCase().replaceAll(" ", "-")}
-                >
-                  {selectedCall.status}
-                </Badge>
-              )}
-            </div>
-
-            {!selectedCall ? (
-              <div className="empty-detail">
-                <div className="empty-icon">⌕</div>
-                <h3>Select an incident</h3>
-                <p>
-                  Choose a call from the incident queue to review details and
-                  coordinate responding units.
-                </p>
-              </div>
-            ) : (
-              <div className="call-detail">
-                <div className="detail-title">
-                  <div
-                    className={`priority-square ${selectedCall.priority.toLowerCase()}`}
-                  >
-                    {selectedCall.priority === "Critical"
-                      ? "!"
-                      : selectedCall.priority === "High"
-                        ? "▲"
-                        : "●"}
-                  </div>
-
-                  <div>
-                    <h3>{selectedCall.type}</h3>
-                    <span>
-                      {selectedCall.id} · Received{" "}
-                      {formatTime(selectedCall.time)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="detail-fields">
-                  <div>
-                    <span>PRIORITY</span>
-                    <Badge type={selectedCall.priority.toLowerCase()}>
-                      {selectedCall.priority}
-                    </Badge>
-                  </div>
-
-                  <div>
-                    <span>AREA</span>
-                    <strong>{selectedCall.area}</strong>
-                  </div>
-
-                  <div className="full-field">
-                    <span>LOCATION</span>
-                    <strong>{selectedCall.location}</strong>
-                  </div>
-
-                  <div className="full-field">
-                    <span>CALLER</span>
-                    <strong>{selectedCall.caller}</strong>
-                  </div>
-
-                  <div className="full-field">
-                    <span>CALL DETAILS</span>
-                    <p>{selectedCall.details}</p>
-                  </div>
-                </div>
-
-                <div className="detail-actions">
-                  {selectedCall.status === "Pending" && (
-                    <button
-                      className="primary-button wide"
-                      onClick={() => acceptCall(selectedCall)}
-                    >
-                      Accept Call
-                    </button>
-                  )}
-
-                  {selectedCall.status !== "Cleared" && (
-                    <>
-                      <label className="field-label" htmlFor="unit-select">
-                        ASSIGN A UNIT
-                      </label>
-
-                      <div className="assign-row">
-                        <select
-                          id="unit-select"
-                          value={assignUnit}
-                          onChange={(event) =>
-                            setAssignUnit(event.target.value)
-                          }
-                        >
-                          <option value="">Select available unit...</option>
-
-                          {units
-                            .filter(
-                              (unit) =>
-                                unit.status === "Available" &&
-                                !selectedCall.units.includes(unit.id)
-                            )
-                            .map((unit) => (
-                              <option key={unit.id} value={unit.id}>
-                                {unit.callsign} — {unit.agency}
-                              </option>
-                            ))}
-                        </select>
-
-                        <button
-                          className="primary-button"
-                          onClick={dispatchCall}
-                        >
-                          Dispatch
-                        </button>
-                      </div>
-
-                      {selectedCall.units.length > 0 && (
-                        <div className="assigned-units">
-                          <span>ASSIGNED UNITS</span>
-                          {selectedCall.units.map((id) => {
-                            const unit = units.find(
-                              (item) => item.id === id
-                            );
-
-                            return unit ? (
-                              <Badge key={id}>{unit.callsign}</Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-
-                      <button
-                        className="success-button wide"
-                        onClick={() => clearCall(selectedCall)}
-                      >
-                        ✓ Clear Incident
-                      </button>
-                    </>
-                  )}
-
-                  {selectedCall.status === "Cleared" && (
-                    <p className="cleared-note">
-                      This incident has been cleared.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
+      <section className="toolbar">
+        <div>
+          <h2>Dispatch Operations</h2>
+          <p>Manage incidents, resources, and simulated radio traffic.</p>
         </div>
-
-        <div className="lower-grid">
-          <section className="panel units-panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">FIELD OPERATIONS</span>
-                <h2>Unit Status Board</h2>
-              </div>
-              <span className="small-counter">{units.length} UNITS</span>
-            </div>
-
-            <div className="unit-table-wrap">
-              <table className="unit-table">
-                <thead>
-                  <tr>
-                    <th>CALLSIGN</th>
-                    <th>AGENCY</th>
-                    <th>AREA</th>
-                    <th>STATUS</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {units.map((unit) => (
-                    <tr key={unit.id}>
-                      <td>
-                        <strong>{unit.callsign}</strong>
-                      </td>
-                      <td>{unit.agency}</td>
-                      <td>{unit.area}</td>
-                      <td>
-                        <select
-                          className={`status-select ${unit.status
-                            .toLowerCase()
-                            .replaceAll(" ", "-")}`}
-                          aria-label={`${unit.callsign} status`}
-                          value={unit.status}
-                          onChange={(event) =>
-                            changeUnitStatus(unit.id, event.target.value)
-                          }
-                        >
-                          {STATUSES.map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="table-note">
-              Example callsigns and unit assignments are fictional and are not
-              official agency identifiers.
-            </p>
-          </section>
-
-          <section className="panel map-panel">
-            <div className="panel-heading">
-              <div>
-                <span className="eyebrow">GEOGRAPHIC OVERVIEW</span>
-                <h2>Livingston Parish Map</h2>
-              </div>
-              <span className="map-tag">OPENSTREETMAP</span>
-            </div>
-
-            <div className="real-map">
-              <MapContainer
-                center={[30.48, -90.82]}
-                zoom={10}
-                scrollWheelZoom={true}
-                className="leaflet-map"
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-
-                {calls
-                  .filter((call) => call.status !== "Cleared")
-                  .map((call) => {
-                    const coordinates =
-                      AREA_COORDINATES[call.area] ||
-                      AREA_COORDINATES.Parishwide;
-
-                    const markerColor =
-                      call.priority === "Critical"
-                        ? "#ff303b"
-                        : call.priority === "High"
-                          ? "#f0a33b"
-                          : "#3b91ed";
-
-                    return (
-                      <CircleMarker
-                        key={call.id}
-                        center={coordinates}
-                        radius={call.priority === "Critical" ? 10 : 7}
-                        pathOptions={{
-                          color: "#ffffff",
-                          weight: 2,
-                          fillColor: markerColor,
-                          fillOpacity: 0.9,
-                        }}
-                        eventHandlers={{
-                          click: () => setSelectedId(call.id),
-                        }}
-                      >
-                        <Popup>
-                          <strong>{call.type}</strong>
-                          <br />
-                          Incident: {call.id}
-                          <br />
-                          Priority: {call.priority}
-                          <br />
-                          Location: {call.location}
-                          <br />
-                          Status: {call.status}
-                        </Popup>
-                      </CircleMarker>
-                    );
-                  })}
-              </MapContainer>
-            </div>
-
-            <div className="map-legend">
-              <span>
-                <i
-                  className="legend-dot"
-                  style={{ background: "#ff303b" }}
-                />
-                Critical
-              </span>
-              <span>
-                <i
-                  className="legend-dot"
-                  style={{ background: "#f0a33b" }}
-                />
-                High
-              </span>
-              <span>
-                <i
-                  className="legend-dot"
-                  style={{ background: "#3b91ed" }}
-                />
-                Other open calls
-              </span>
-            </div>
-
-            <p className="table-note">
-              Incident markers are approximate community locations, not
-              verified addresses. Map tiles require an internet connection.
-              Fictional incidents only.
-            </p>
-          </section>
+        <div className="toolbar-actions">
+          <label className="auto-toggle">
+            <input type="checkbox" checked={autoGenerate} onChange={(event) => setAutoGenerate(event.target.checked)} />
+            Auto-generate calls
+          </label>
+          <button className="button button-primary" onClick={() => addCall(false)}>＋ New Call</button>
         </div>
+      </section>
 
-        <section className="panel activity-panel">
+      <div className="workspace">
+        <section className="panel calls-panel">
           <div className="panel-heading">
             <div>
-              <span className="eyebrow">COMMUNICATIONS</span>
-              <h2>Dispatch Activity Log</h2>
+              <span className="eyebrow">INCIDENT MANAGEMENT</span>
+              <h3>Call Queue <span className="count">{visibleCalls.length}</span></h3>
             </div>
-
-            <button className="text-button" onClick={resetSimulation}>
-              Reset simulation
-            </button>
           </div>
 
-          <div className="activity-list">
-            {logs.slice(0, 12).map((entry) => (
-              <div className="activity-entry" key={entry.id}>
-                <span className="activity-time">
-                  {formatTime(entry.time)}
-                </span>
-                <span className="activity-indicator" />
-                <span>{entry.message}</span>
-              </div>
+          <div className="filters">
+            <input aria-label="Search calls" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search calls, IDs, locations..." />
+            <div className="filter-row">
+              <select value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filter call status">
+                <option value="Active">Active Calls</option>
+                <option value="Pending">Pending Only</option>
+                <option value="Cleared">Cleared Calls</option>
+                <option value="All">All Calls</option>
+              </select>
+              <select value={agencyFilter} onChange={(event) => setAgencyFilter(event.target.value)} aria-label="Filter agency">
+                <option value="ALL">All Agencies</option>
+                <option value="POLICE">Law Enforcement</option>
+                <option value="FIRE">Fire</option>
+                <option value="EMS">EMS</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="call-list">
+            {visibleCalls.length === 0 && <div className="empty-state">No calls match these filters.</div>}
+            {visibleCalls.map((call) => (
+              <button
+                key={call.id}
+                className={`call-card ${selectedId === call.id ? "selected" : ""} ${call.status === "Cleared" ? "cleared" : ""}`}
+                onClick={() => setSelectedId(call.id)}
+              >
+                <div className="call-card-top">
+                  <span className={`priority ${call.priority.toLowerCase()}`}>{call.priority}</span>
+                  <span className={`agency-chip ${call.agency.toLowerCase()}`}>{AGENCIES[call.agency].short}</span>
+                  <span className="call-time">{call.created}</span>
+                </div>
+                <strong>{call.type}</strong>
+                <span className="call-location">⌖ {call.location}</span>
+                <div className="call-card-bottom">
+                  <span>{call.id}</span>
+                  <span className={`status-text ${call.status.toLowerCase().replaceAll(" ", "-")}`}>{call.status}</span>
+                </div>
+              </button>
             ))}
           </div>
         </section>
 
-        <footer className="app-footer">
-          <span>LPDS · LIVINGSTON PARISH DISPATCH SIMULATOR</span>
-          <span>TRAINING SIMULATION ONLY · NOT AN OFFICIAL SYSTEM</span>
-        </footer>
-      </main>
-
-      {showNewCall && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setShowNewCall(false)}
-        >
-          <section
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="new-call-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="modal-heading">
-              <div>
-                <span className="eyebrow">INCIDENT INTAKE</span>
-                <h2 id="new-call-title">Create New Call</h2>
-              </div>
-
-              <button
-                className="close-button"
-                onClick={() => setShowNewCall(false)}
-                aria-label="Close"
-              >
-                ×
-              </button>
+        <section className="panel detail-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">INCIDENT WORKSPACE</span>
+              <h3>{selectedCall ? selectedCall.id : "Select an incident"}</h3>
             </div>
+            {selectedCall && <span className={`priority ${selectedCall.priority.toLowerCase()}`}>{selectedCall.priority}</span>}
+          </div>
 
-            <p className="modal-note">
-              Create a fictional incident for this simulation.
-            </p>
-
-            <form onSubmit={createCall}>
-              <label>
-                Call type
-                <select
-                  value={newCall.type}
-                  onChange={(event) =>
-                    setNewCall({
-                      ...newCall,
-                      type: event.target.value,
-                    })
-                  }
-                >
-                  {CALL_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Priority
-                <select
-                  value={newCall.priority}
-                  onChange={(event) =>
-                    setNewCall({
-                      ...newCall,
-                      priority: event.target.value,
-                    })
-                  }
-                >
-                  {PRIORITIES.map((priority) => (
-                    <option key={priority} value={priority}>
-                      {priority}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Community / area
-                <select
-                  value={newCall.area}
-                  onChange={(event) =>
-                    setNewCall({
-                      ...newCall,
-                      area: event.target.value,
-                    })
-                  }
-                >
-                  {AREAS.map((area) => (
-                    <option key={area} value={area}>
-                      {area}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Location
-                <input
-                  required
-                  placeholder="e.g. Walker South Road, Walker"
-                  value={newCall.location}
-                  onChange={(event) =>
-                    setNewCall({
-                      ...newCall,
-                      location: event.target.value,
-                    })
-                  }
-                />
-              </label>
-
-              <label>
-                Call details
-                <textarea
-                  rows="3"
-                  placeholder="What did the simulated caller report?"
-                  value={newCall.details}
-                  onChange={(event) =>
-                    setNewCall({
-                      ...newCall,
-                      details: event.target.value,
-                    })
-                  }
-                />
-              </label>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setShowNewCall(false)}
-                >
-                  Cancel
-                </button>
-
-                <button type="submit" className="primary-button">
-                  Create Incident
-                </button>
+          {!selectedCall ? (
+            <div className="empty-detail">
+              <div className="empty-icon">⌕</div>
+              <h4>No incident selected</h4>
+              <p>Select a call from the queue or create a new one to manage its response.</p>
+            </div>
+          ) : (
+            <div className="detail-content">
+              <div className="incident-title">
+                <span className={`agency-chip ${selectedCall.agency.toLowerCase()}`}>{AGENCIES[selectedCall.agency].label}</span>
+                <h2>{selectedCall.type}</h2>
+                <p>{selectedCall.details}</p>
               </div>
-            </form>
-          </section>
+
+              <div className="detail-grid">
+                <Info label="LOCATION" value={selectedCall.location} />
+                <Info label="CALL RECEIVED" value={selectedCall.created} />
+                <Info label="STATUS" value={selectedCall.status} />
+                <Info label="ASSIGNED UNITS" value={selectedCall.units.length ? selectedCall.units.join(", ") : "None assigned"} />
+              </div>
+
+              <div className="section-block">
+                <div className="section-title"><h4>Unit Assignment</h4><span>{selectedCall.units.length} assigned</span></div>
+                <div className="assign-row">
+                  <select id="unit-picker" defaultValue="">
+                    <option value="">Select available unit...</option>
+                    {units.filter((unit) => unit.status === "Available" && (unit.agency === selectedCall.agency || selectedCall.agency === "POLICE")).map((unit) => (
+                      <option key={unit.id} value={unit.id}>{unit.id} — {unit.area} ({AGENCIES[unit.agency].short})</option>
+                    ))}
+                  </select>
+                  <button className="button button-primary" onClick={() => {
+                    const picker = document.getElementById("unit-picker");
+                    if (picker?.value) assignUnit(picker.value);
+                  }}>Assign</button>
+                </div>
+                <button className="button button-secondary full-width" onClick={dispatchSelected}>Auto-assign nearest available unit</button>
+              </div>
+
+              <div className="section-block">
+                <div className="section-title"><h4>Incident Status</h4></div>
+                <div className="status-actions">
+                  {CALL_STATUSES.map((status) => (
+                    <button key={status} disabled={selectedCall.status === "Cleared" || status === selectedCall.status} className={`status-button ${status === selectedCall.status ? "active" : ""}`} onClick={() => changeCallStatus(status)}>{status}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="section-block">
+                <div className="section-title"><h4>Incident Notes</h4><span>{(selectedCall.notes || []).length} notes</span></div>
+                <div className="note-entry">
+                  <input value={note} onChange={(event) => setNote(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addIncidentNote()} placeholder="Add a note to this incident..." />
+                  <button className="button button-secondary" onClick={addIncidentNote}>Add</button>
+                </div>
+                {(selectedCall.notes || []).map((entry, index) => (
+                  <div className="incident-note" key={`${entry.time}-${index}`}><time>{entry.time}</time><span>{entry.text}</span></div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="panel units-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">RESOURCE MANAGEMENT</span>
+            <h3>Unit Status Board <span className="count">{units.length}</span></h3>
+          </div>
+          <button className="button button-secondary" onClick={() => {
+            setUnits((current) => [...current, { id: `LPSO-${101 + current.filter((unit) => unit.agency === "POLICE").length}`, agency: "POLICE", area: "Livingston", status: "Available", callId: null }]);
+            addRadio("New simulated law enforcement unit added.");
+          }}>＋ Add LE Unit</button>
         </div>
-      )}
+
+        <div className="unit-table-wrap">
+          <table className="unit-table">
+            <thead>
+              <tr><th>UNIT ID</th><th>AGENCY</th><th>AREA</th><th>STATUS</th><th>ASSIGNED CALL</th><th>CHANGE STATUS</th></tr>
+            </thead>
+            <tbody>
+              {units.map((unit) => (
+                <tr key={unit.id}>
+                  <td className="unit-id">{unit.id}</td>
+                  <td><span className={`agency-chip ${unit.agency.toLowerCase()}`}>{AGENCIES[unit.agency].short}</span></td>
+                  <td>{unit.area}</td>
+                  <td><span className={`unit-status ${unit.status.toLowerCase().replaceAll(" ", "-")}`}><span />{unit.status}</span></td>
+                  <td>{unit.callId || "—"}</td>
+                  <td>
+                    <select value={unit.status} onChange={(event) => changeUnitStatus(unit.id, event.target.value)} aria-label={`Change status for ${unit.id}`}>
+                      {UNIT_STATUSES.map((status) => <option key={status}>{status}</option>)}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel radio-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">COMMUNICATIONS</span>
+            <h3>Radio Traffic <span className="count">{radio.length}</span></h3>
+          </div>
+          <button className="button button-secondary" onClick={() => setRadio([])}>Clear Radio Log</button>
+        </div>
+
+        <form className="radio-compose" onSubmit={(event) => { event.preventDefault(); sendRadioMessage(); }}>
+          <select value={radioChannel} onChange={(event) => setRadioChannel(event.target.value)} aria-label="Radio channel">
+            <option>DISPATCH</option>
+            <option>LAW 1</option>
+            <option>FIRE</option>
+            <option>EMS</option>
+          </select>
+          <input value={radioMessage} onChange={(event) => setRadioMessage(event.target.value)} placeholder="Enter simulated radio traffic..." />
+          <button className="button button-primary" type="submit">Transmit</button>
+        </form>
+
+        <div className="radio-log">
+          {radio.length === 0 && <div className="empty-state">No radio traffic recorded.</div>}
+          {radio.map((entry) => (
+            <div className="radio-entry" key={entry.id}>
+              <time>{entry.time}</time>
+              <span className="radio-channel">{entry.channel}</span>
+              <strong>{entry.unit}</strong>
+              <p>{entry.message}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <footer className="app-footer">
+        <span>LPDS · FICTIONAL DISPATCH SIMULATOR</span>
+        <button onClick={resetSimulation}>Reset simulation data</button>
+      </footer>
+    </main>
+  );
+}
+
+function Stat({ label, value, detail, accent = "" }) {
+  return (
+    <div className={`stat-card ${accent}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
     </div>
   );
 }
 
-export default App;
+function Info({ label, value }) {
+  return (
+    <div className="info-cell">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
